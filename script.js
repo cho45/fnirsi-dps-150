@@ -303,6 +303,11 @@ Vue.createApp({
 
 		connect: async function () {
 			console.log('connect');
+			// Check for WebSerial API support
+			if (!navigator.serial) {
+				alert('WebSerial API is not supported in this browser.\n\nPlease use Chrome, Edge, Opera, or another Chromium-based browser to control the DPS-150.');
+				return;
+			}
 			// vid:0x2e3c pid: 0x5740
 			this.start(await navigator.serial.requestPort());
 		},

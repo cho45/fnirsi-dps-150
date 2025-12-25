@@ -32,7 +32,7 @@ Instead, the device exposes an internal memory map where:
 | Parameter | Value |
 |--------|------|
 | Interface | USB CDC (COM port) |
-| Baudrate | 115200 |
+| Baud rate | 115200 |
 | Data bits | 8 |
 | Parity | None |
 | Stop bits | 1 |
@@ -80,25 +80,41 @@ Before accessing any registers, communication must be enabled.
 |------|---------|------|
 | Enable session | `F1 C1 00 01 01 02` | Must be sent once |
 | Disable session | `F1 C1 00 01 00 01` | Graceful close |
-| Start telemetry | `F1 B0 00 01 05 06` | Enables periodic RX |
-| Stop telemetry | `F1 B0 00 01 00 01` | Optional |
 
 ---
 
-## 5. Active Output Control
+## 5. Baud rate
 
-### 5.1 Voltage Setpoint (C1)
+Baud rate must be send to device after session activation
+
+Send `F1 B0 00 01 XX 06` where `XX` is
+
+| Value | Baud Rate |
+|----|----|
+| 0 | AUTO (??? / original software only send 1-5) |
+| 1 | 9600 |
+| 2 | 19200 |
+| 3 | 38400 |
+| 4 | 57600 |
+| 5 | 115200 |
+
+---
+
+## 6. Active Output Control
+
+### 6.1 Voltage Setpoint (C1)
 
 - Type: float32
 - Unit: volts
 
 **Example: set 12.3 V**
+
 ```
 TX: F1 B1 C1 04 CD CC 44 41 E3
 RX: F0 A1 C1 04 CD CC 44 41 E3
 ```
 
-### 5.2 Current Limit (C2)
+### 6.2 Current Limit (C2)
 
 - Type: float32
 - Unit: amperes
@@ -112,7 +128,7 @@ TX: F1 B1 C2 04 FD FF FF 3E FF
 
 ---
 
-## 6. Output Enable (RUN / STOP)
+## 7. Output Enable (RUN / STOP)
 
 | Register | Description | Type |
 |------|-------------|----|
@@ -137,7 +153,7 @@ RX: F0 A1 DB 01 00 DC
 
 ---
 
-## 7. Preset Memory (M1–M6)
+## 8. Preset Memory (M1–M6)
 
 Each preset consists of **Voltage + Current** registers.
 
@@ -162,7 +178,7 @@ When selecting a preset via UI, FNIRSI software:
 
 ---
 
-## 8. Protection Settings
+## 9. Protection Settings
 
 | Register | Protection | Unit |
 |------|-------------|------|
@@ -185,7 +201,7 @@ TX: F1 A1 FF 01 00 00
 
 ---
 
-## 9. UI / System Settings
+## 10. UI / System Settings
 
 | Register | Function | Type |
 |------|----------|----|
@@ -204,28 +220,64 @@ TX: F1 B1 D7 01 09 E1
 
 ---
 
-## 10. Telemetry (RX only)
+## 11. Telemetry (RX only)
 
-When streaming is enabled, DPS‑150 periodically transmits telemetry.
+DPS‑150 periodically transmits telemetry (period - 500ms).
 
 | Register | Meaning | Type |
 |------|---------|----|
-| C0 | Measured voltage | float32 |
-| E2 | Measured current | float32 |
-| E3 | Output power | float32 |
+| C0 | Input voltage | float32 |
+| E2 | Maximum voltage (usually input voltage - 0.2v) | float32 |
+| E3 | Maximum current (usually 5.1A) | float32 |
 | C4 | Internal temperature | float32 |
-| C3 | Status struct | 12 bytes |
+| C3 | Measurement | 12 bytes, 3 float32 values in row - Measured Voltage, Measured Current, Measured Power |
 
 Telemetry frames are **unsolicited** and **must not be acknowledged**.
 
 ---
 
-## 11. Full Memory Dump
+## 12. Additional telemetry (RX - Energy + Capacity)
+
+You can request additional telemetry for energy and capacity:
+
+| Register | Meaning | Type |
+|------|---------|----|
+| D8 | Energy and Capacity measurement | bool (0 or 1) |
+| D9 | Measured Capacity | float32 |
+| DA | Measured Energy | float32 |
+
+### Example
+
+Energy and capacity metering:
+
+```
+TX: F1 A1 D8 01 01 02
+
+...additionally with main telemetry data there will be 2 additional frames...
+RX: F0 A1 D9 04 9B D6 34 00 81
+RX: F0 A1 DA 04 CF AE 28 35 B8
+```
+
+Note that energy and capacity values only send when Output is `RUN` (see #7), however main telemetry is sent even when output is `STOP`
+
+---
+
+## 13. Telemetry on change
+
+Some frames are automatically sent by device on register change (no need to request it)
+
+| Register | Meaning | Type |
+|------|---------|----|
+| DB | Running mode | `0 = STOP, 1 = RUN` |
+| DC | Protection mode | `0 = OK, 1 = OVP, 2 = OCP, 3 = OPP, 4 = OTP, 5 = LVP, 6 = REP` |
+| DD | CC/CV | `0 = CC, 1 = CV` |
+
+## 14. Full Memory Dump
 
 The entire internal state can be requested explicitly.
 
 ```
-TX: F1 A1 FF 01 00 00
+TX: F1 A1 FF 00 FF
 RX: F0 A1 FF 8B <139 bytes> <CHK>
 ```
 
@@ -240,11 +292,11 @@ FNIRSI software issues this **after every write**.
 
 ---
 
-## 12. Recommended Control Sequence
+## 15. Recommended Control Sequence
 
 ```text
 1. Enable session
-2. Start telemetry (optional)
+2. Choose baud rate
 3. Write C1 / C2
 4. Write DB = RUN
 5. Monitor telemetry
@@ -254,7 +306,7 @@ FNIRSI software issues this **after every write**.
 
 ---
 
-## 13. Notes for Implementers
+## 16. Notes for Implementers
 
 - No timing‑critical delays required
 - Writes are idempotent
@@ -264,7 +316,7 @@ FNIRSI software issues this **after every write**.
 
 ---
 
-## 14. Project Status
+## 17. Project Status
 
 ✔ Core protocol understood  
 ✔ All known registers mapped  

@@ -394,15 +394,23 @@ describe('DPS150', () => {
   });
 
   describe('start/stop', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('start()がポートを正しく開く', async () => {
       expect(mockPort.isOpen).toBe(false);
-      
+
       // startを非同期で実行（startReaderが待機状態になるため）
       const startPromise = dps.start();
-      
-      // 少し待ってからポートの状態を確認
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
+
+      // initCommand() 内の全 sleep(50) を進める (6コマンド分)
+      await vi.advanceTimersByTimeAsync(50 * 6);
+
       expect(mockPort.isOpen).toBe(true);
       expect(mockPort.openOptions).toEqual({
         baudRate: 115200,
@@ -412,11 +420,29 @@ describe('DPS150', () => {
         flowControl: 'hardware',
         parity: 'none'
       });
-      
+
       // 初期化コマンドが送信されることを確認
       const writtenData = mockPort.getWrittenData();
-      expect(writtenData.length).toBeGreaterThan(0); // 複数の初期化コマンドが送信される
-      
+      expect(writtenData).toHaveLength(6);
+
+      // 1. セッション開始: F1 C1 00 01 01 02
+      expect(writtenData[0]).toEqual(new Uint8Array([0xf1, 0xc1, 0x00, 0x01, 0x01, 0x02]));
+
+      // 2. ボーレート設定 (115200 = index 5): F1 B0 00 01 05 06
+      expect(writtenData[1]).toEqual(new Uint8Array([0xf1, 0xb0, 0x00, 0x01, 0x05, 0x06]));
+
+      // 3. MODEL_NAME (222) 取得: F1 A1 DE 01 00 DF
+      expect(writtenData[2]).toEqual(new Uint8Array([0xf1, 0xa1, 0xde, 0x01, 0x00, 0xdf]));
+
+      // 4. HARDWARE_VERSION (223) 取得: F1 A1 DF 01 00 E0
+      expect(writtenData[3]).toEqual(new Uint8Array([0xf1, 0xa1, 0xdf, 0x01, 0x00, 0xe0]));
+
+      // 5. FIRMWARE_VERSION (224) 取得: F1 A1 E0 01 00 E1
+      expect(writtenData[4]).toEqual(new Uint8Array([0xf1, 0xa1, 0xe0, 0x01, 0x00, 0xe1]));
+
+      // 6. ALL (255) 取得: F1 A1 FF 01 00 00
+      expect(writtenData[5]).toEqual(new Uint8Array([0xf1, 0xa1, 0xff, 0x01, 0x00, 0x00]));
+
       // クリーンアップ：テスト終了時にreaderをキャンセル
       if (dps.reader) {
         await dps.reader.cancel();
@@ -430,15 +456,21 @@ describe('DPS150', () => {
       dps.reader = {
         cancel: vi.fn()
       };
-      
-      await dps.stop();
-      
+
+      const stopPromise = dps.stop();
+
+      // stop() 内の sendCommand の sleep(50) を進める
+      await vi.advanceTimersByTimeAsync(50);
+
+      await stopPromise;
+
       expect(mockPort.isOpen).toBe(false);
       expect(dps.reader.cancel).toHaveBeenCalledOnce();
-      
-      // 終了コマンドが送信されることを確認
+
+      // セッション終了コマンドが送信されることを確認: F1 C1 00 01 00 01
       const writtenData = mockPort.getWrittenData();
-      expect(writtenData.length).toBeGreaterThan(0);
+      expect(writtenData).toHaveLength(1);
+      expect(writtenData[0]).toEqual(new Uint8Array([0xf1, 0xc1, 0x00, 0x01, 0x00, 0x01]));
     });
   });
 

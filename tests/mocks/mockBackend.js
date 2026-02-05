@@ -1,6 +1,18 @@
 import {
   VOLTAGE_SET,
   CURRENT_SET,
+  GROUP1_VOLTAGE_SET,
+  GROUP1_CURRENT_SET,
+  GROUP2_VOLTAGE_SET,
+  GROUP2_CURRENT_SET,
+  GROUP3_VOLTAGE_SET,
+  GROUP3_CURRENT_SET,
+  GROUP4_VOLTAGE_SET,
+  GROUP4_CURRENT_SET,
+  GROUP5_VOLTAGE_SET,
+  GROUP5_CURRENT_SET,
+  GROUP6_VOLTAGE_SET,
+  GROUP6_CURRENT_SET,
   BRIGHTNESS,
   VOLUME,
 } from "../../dps-150.js";
@@ -217,6 +229,10 @@ export class MockBackendWorker {
     } else if (id === CURRENT_SET) {
       this.deviceState.setCurrent = value;
       this.deviceState.outputCurrent = value;
+    } else if (id >= GROUP1_VOLTAGE_SET && id <= GROUP6_CURRENT_SET) {
+      const index = Math.floor((id - GROUP1_VOLTAGE_SET) / 2) + 1;
+      const type = (id - GROUP1_VOLTAGE_SET) % 2 === 0 ? 'setVoltage' : 'setCurrent';
+      this.deviceState[`group${index}${type}`] = value;
     }
     // 他のIDも必要に応じて追加
   }

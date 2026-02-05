@@ -30,7 +30,18 @@ import {
 	OPP,
 } from "./dps-150.js";
 
-const Backend = Comlink.wrap(new Worker("worker.js", { type : "module" }));
+const IS_TEST = new URLSearchParams(window.location.search).has('test');
+
+const Backend = await (async () => {
+	if (IS_TEST) {
+		// テストモード: モックをdynamic import
+		const module = await import('./tests/mocks/mockBackend.js');
+		return module.MockBackendWorker;
+	} else {
+		// 本番モード: Worker + Comlink
+		return Comlink.wrap(new Worker("worker.js", { type : "module" }));
+	}
+})();
 
 
 Vue.createApp({
@@ -321,6 +332,7 @@ Vue.createApp({
 		},
 
 		start: async function (port) {
+			console.log('start called with port:', port);
 			if (!port) return;
 			console.log(port, port.getInfo());
 

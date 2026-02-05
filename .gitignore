@@ -75,3 +75,7 @@ pids/
 tmp/
 temp/
 .claude/
+__screenshots__/
+playwright-report/
+test-results/
+

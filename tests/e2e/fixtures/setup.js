@@ -35,7 +35,9 @@ export const test = base.extend({
       await originalGoto(url, options);
       // ?test=true 且つ noconnect がない場合は自動的に接続
       if (url.includes('?test=true') && !url.includes('noconnect')) {
-        await page.locator('#app > div > div > div > div.v-overlay__content > div > p:nth-child(2) > button').click();
+        const connectBtn = page.locator('.v-overlay__content button').filter({ hasText: 'Connect' });
+        await connectBtn.waitFor({ state: 'visible' });
+        await connectBtn.click();
         await page.waitForTimeout(500);
       }
     };

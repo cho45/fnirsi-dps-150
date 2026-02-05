@@ -1,55 +1,31 @@
 import { test, expect } from './fixtures/setup';
 
 test.describe('Output Control', () => {
-  test('should show Disable button in initial state', async ({ page }) => {
+  test('should toggle output via UI button', async ({ page }) => {
     await page.goto('/?test=true');
 
-    // 初期状態は outputClosed=true なので Disable ボタンが表示される
-    await expect(page.locator('button[title="Disable"]')).toBeVisible();
-  });
+    // 初期状態: outputClosed=false (OFF) なので "Enable" ボタンが表示されている
+    const enableBtn = page.locator('button[title="Enable"]');
+    await expect(enableBtn).toBeVisible();
 
-  test('should show Enable button when output is enabled', async ({ page }) => {
-    await page.goto('/?test=true');
+    // 内部状態を確認 (OFF)
+    expect(await page.evaluate(() => window.APP.device.outputClosed)).toBe(false);
 
-    // 初期状態は Disable ボタンが表示される
-    await expect(page.locator('button[title="Disable"]')).toBeVisible();
-
-    // enable() を直接呼び出して出力を有効化
-    await page.evaluate(async () => {
-      await window.APP.dps.enable();
-    });
+    // ボタンをクリックして出力をONにする
+    await enableBtn.click();
     await page.waitForTimeout(100);
 
-    // Enable ボタンが表示される
+    // ボタンの表示が "Disable" に変わる (ON状態)
+    const disableBtn = page.locator('button[title="Disable"]');
+    await expect(disableBtn).toBeVisible();
+
+    // 内部状態を確認 (ON)
+    expect(await page.evaluate(() => window.APP.device.outputClosed)).toBe(true);
+
+    // 再度クリックしてOFFに戻す
+    await disableBtn.click();
+    await page.waitForTimeout(100);
     await expect(page.locator('button[title="Enable"]')).toBeVisible();
-
-    // Enable ボタンをクリックしても何も変わらない（すでに有効状態）
-    await page.locator('button[title="Enable"]').click();
-    await page.waitForTimeout(100);
-
-    // まだ Enable ボタンが表示される
-    await expect(page.locator('button[title="Enable"]')).toBeVisible();
-  });
-
-  test('should show Disable button when output is disabled', async ({ page }) => {
-    await page.goto('/?test=true');
-
-    // enable() を呼び出して出力を有効化
-    await page.evaluate(async () => {
-      await window.APP.dps.enable();
-    });
-    await page.waitForTimeout(100);
-
-    // Enable ボタンが表示される
-    await expect(page.locator('button[title="Enable"]')).toBeVisible();
-
-    // disable() を呼び出して出力を無効化
-    await page.evaluate(async () => {
-      await window.APP.dps.disable();
-    });
-    await page.waitForTimeout(100);
-
-    // Disable ボタンが表示される
-    await expect(page.locator('button[title="Disable"]')).toBeVisible();
+    expect(await page.evaluate(() => window.APP.device.outputClosed)).toBe(false);
   });
 });

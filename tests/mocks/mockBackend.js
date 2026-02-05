@@ -1,3 +1,10 @@
+import {
+  VOLTAGE_SET,
+  CURRENT_SET,
+  BRIGHTNESS,
+  VOLUME,
+} from "../../dps-150.js";
+
 export class MockBackendWorker {
   constructor() {
     this.deviceState = this.getDefaultDeviceState();
@@ -15,7 +22,7 @@ export class MockBackendWorker {
       outputCurrent: 0,
       outputPower: 0,
       temperature: 0,
-      outputClosed: true, // 初期状態はOFF (outputClosed=true)
+      outputClosed: false, // 初期状態はOFF (outputClosed=false)
       protectionState: "",
       mode: "CV",
       modelName: "",
@@ -67,13 +74,13 @@ export class MockBackendWorker {
 
   // 出力制御
   async enable() {
-    this.deviceState.outputClosed = false;
+    this.deviceState.outputClosed = true;
     this.logCall('enable', []);
     this.notifyStateUpdate();
   }
 
   async disable() {
-    this.deviceState.outputClosed = true;
+    this.deviceState.outputClosed = false;
     this.logCall('disable', []);
     this.notifyStateUpdate();
   }
@@ -124,9 +131,9 @@ export class MockBackendWorker {
       progress(queue.length);
       const cmd = queue.shift();
       if (cmd.type === 'V') {
-        await this.setFloatValue(193, cmd.args[0]); // VOLTAGE_SET
+        await this.setFloatValue(VOLTAGE_SET, cmd.args[0]);
       } else if (cmd.type === 'I') {
-        await this.setFloatValue(194, cmd.args[0]); // CURRENT_SET
+        await this.setFloatValue(CURRENT_SET, cmd.args[0]);
       } else if (cmd.type === 'ON') {
         await this.enable();
       } else if (cmd.type === 'OFF') {
@@ -204,10 +211,10 @@ export class MockBackendWorker {
   updateFloatValueState(id, value) {
     // DPS-150のIDマップに基づいて状態を更新
     // 簡略版: 基本的な値のみ対応
-    if (id === 193) { // VOLTAGE_SET
+    if (id === VOLTAGE_SET) {
       this.deviceState.setVoltage = value;
       this.deviceState.outputVoltage = value; // 簡略化: 即時に反映
-    } else if (id === 194) { // CURRENT_SET
+    } else if (id === CURRENT_SET) {
       this.deviceState.setCurrent = value;
       this.deviceState.outputCurrent = value;
     }
@@ -216,9 +223,9 @@ export class MockBackendWorker {
 
   updateByteValueState(id, value) {
     // バイト値の更新
-    if (id === 1) { // BRIGHTNESS
+    if (id === BRIGHTNESS) {
       this.deviceState.brightness = value;
-    } else if (id === 2) { // VOLUME
+    } else if (id === VOLUME) {
       this.deviceState.volume = value;
     }
   }

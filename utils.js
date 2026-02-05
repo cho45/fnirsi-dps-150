@@ -38,7 +38,8 @@ export async function evaluateDSL(text, initialV = 0, initialI = 0) {
 		const argumentNames = Object.keys(scope);
 		const argumentValues = argumentNames.map((name) => scope[name]);
 
-		Function.apply(null, argumentNames.concat(text)).apply(null, argumentValues);
+		const fn = new Function(...argumentNames, text);
+		fn(...argumentValues);
 		return queue;
 	}, 500);
 

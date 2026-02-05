@@ -20,10 +20,36 @@ test.describe('Device Connection', () => {
     expect(mockExists).toBe(true);
   });
 
-  test('should display device info after connection', async ({ page }) => {
+  test('should connect manually and display device info', async ({ page }) => {
+    await page.goto('/?test=true&noconnect');
+
+    // オーバーレイが表示されている
+    await expect(page.locator('.v-overlay--active')).toBeVisible();
+
+    // Connectボタンをクリック
+    await page.click('.v-overlay__content button:has-text("Connect")');
+
+    // オーバーレイが消えるのを待つ
+    await expect(page.locator('.v-overlay--active')).toHaveCount(0);
+
+    // アプリバーにデバイス情報が表示される
+    const appBarTitle = page.locator('.v-app-bar-title');
+    await expect(appBarTitle).toContainText('DPS-150');
+    await expect(appBarTitle).toContainText('v2.1');
+    await expect(appBarTitle).toContainText('v1.0');
+  });
+
+  test('should disconnect manually', async ({ page }) => {
     await page.goto('/?test=true');
 
-    // オーバーレイが消えていることを確認（自動接続済み）
+    // 初期状態は自動接続済み (オーバーレイなし)
     await expect(page.locator('.v-overlay--active')).toHaveCount(0);
+
+    // 切断ボタンをクリック (アプリバー内の緑色のボタン)
+    await page.click('.disconnect');
+
+    // 再びオーバーレイが表示される
+    const overlay = page.locator('.v-overlay__content').filter({ hasText: 'Device is not connected' });
+    await expect(overlay).toBeVisible();
   });
 });

@@ -28,6 +28,19 @@ export class MockBackendWorker {
     this.dataCallback = null;
     this.callLog = [];
     this.executeCommandsAbortController = null;
+    this.steppingMode = false;
+    this.stepResolver = null;
+  }
+
+  setSteppingMode(enabled) {
+    this.steppingMode = enabled;
+  }
+
+  step() {
+    if (this.stepResolver) {
+      this.stepResolver();
+      this.stepResolver = null;
+    }
   }
 
   getDefaultDeviceState() {
@@ -145,6 +158,10 @@ export class MockBackendWorker {
 
     // コマンドキューを処理
     while (queue.length > 0) {
+      if (this.steppingMode) {
+        await new Promise(resolve => { this.stepResolver = resolve; });
+      }
+
       progress(queue.length);
       const cmd = queue.shift();
       if (cmd.type === 'V') {
@@ -173,6 +190,8 @@ export class MockBackendWorker {
       this.executeCommandsAbortController.abort();
       this.logCall('abortExecuteCommands', []);
       this.executeCommandsAbortController = null;
+      // ステッピングモードで待機中の場合は強制的に進める
+      this.step();
     }
   }
 

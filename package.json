@@ -8,7 +8,11 @@
     "test:node": "CI=1 vitest --project=node",
     "test:browser": "CI=1 vitest --project=browser",
     "test:ui": "CI=1 vitest --ui",
-    "test:coverage": "CI=1 vitest --coverage"
+    "test:coverage": "CI=1 vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug"
   },
   "keywords": [
     "fnirsi",
@@ -19,9 +23,11 @@
   "author": "cho45",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.58.1",
     "@vitest/browser": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "playwright": "^1.45.0",
+    "serve": "^14.2.5",
     "vitest": "^3.2.4"
   }
 }

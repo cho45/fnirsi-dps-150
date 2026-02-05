@@ -148,12 +148,12 @@
 				padding: 20px 2px;
 			}
 			
-			#numberInput {
+			#numberInputTable {
 				width: 100%;
 				table-layout: fixed;
 			}
 
-			#numberInput .v-btn {
+			#numberInputTable .v-btn {
 				margin: 0;
 				min-width: auto;
 				min-height: 10vh;
@@ -535,7 +535,7 @@
 								<span class="number" v-else style="color: rgba(0,0,0,.54);">{{ formatNumberForInput(numberInput.prev) }}</span>
 								<span class="unit">{{ numberInput.unit }}</span>
 							</div>
-							<table id="numberInput">
+							<table id="numberInputTable">
 								<tr>
 									<td><v-btn variant="tonal" class="" @click="numberInputButton">7</v-btn></td>
 									<td><v-btn variant="tonal" class="" @click="numberInputButton">8</v-btn></td>

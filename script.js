@@ -1,7 +1,7 @@
 import { sprintf } from 'https://cdn.jsdelivr.net/npm/sprintf-js@1.1.3/+esm'
 import * as Comlink from "https://cdn.jsdelivr.net/npm/comlink@4.4.2/dist/esm/comlink.min.mjs";
 
-import { sleep, functionWithTimeout } from "./utils.js";
+import { sleep, evaluateDSL } from "./utils.js";
 import {
 	DPS150,
 	VOLTAGE_SET,
@@ -860,60 +860,18 @@ Vue.createApp({
 		},
 
 
-		evaluateDSL: async function (text) {
-			const dslFunction = await functionWithTimeout((tempV, tempI, text) => {
-				const queue = [];
-				const scope = {
-					V: (v) => {
-						if (v) {
-							tempV = v;
-							queue.push({type: 'V', args: [v]});
-						} else {
-							return tempV;
-						}
-					},
-					I: (i) => {
-						if (i) {
-							tempI = i;
-							queue.push({type: 'I', args: [i]});
-						} else {
-							return tempI;
-						}
-					},
-					ON: () => {
-						queue.push({type: 'ON'});
-					},
-					OFF: () => {
-						queue.push({type: 'OFF'});
-					},
-					SLEEP: (n) => {
-						queue.push({type: 'SLEEP', args: [n] });
-					},
-					times: function (n, f) {
-						for (let i = 0; i < n; i++) {
-							f(i);
-						}
-					}
-				};
-
-				const argumentNames = Object.keys(scope);
-				const argumentValues = argumentNames.map((name) => scope[name]);
-
-				Function.apply(null, argumentNames.concat(text)).apply(null, argumentValues);
-				return queue;
-			}, 500);
-
-
-			let queue = [];
-			let tempV = this.device.setVoltage;
-			let tempI = this.device.setCurrent;
+		runProgram: async function () {
+			let queue;
 			try {
-				queue = await dslFunction(tempV, tempI, text);
+				queue = await evaluateDSL(
+					this.program,
+					this.device.setVoltage,
+					this.device.setCurrent
+				);
 			} catch (e) {
-				alert(e.message, e)
+				alert(e.message, e);
 				return;
 			}
-
 
 			this.programRunning = true;
 			this.programRemaining = queue.length;
@@ -922,10 +880,6 @@ Vue.createApp({
 				this.programRemaining = n;
 			}));
 			this.programRunning = false;
-		},
-
-		runProgram: function () {
-			this.evaluateDSL(this.program);
 		},
 
 		abortProgram: function () {

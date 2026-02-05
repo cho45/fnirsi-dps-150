@@ -1,4 +1,49 @@
 
+export async function evaluateDSL(text, initialV = 0, initialI = 0) {
+	const dslFunction = functionWithTimeout((tempV, tempI, text) => {
+		const queue = [];
+		const scope = {
+			V: (v) => {
+				if (v !== undefined) {
+					tempV = v;
+					queue.push({type: 'V', args: [v]});
+				} else {
+					return tempV;
+				}
+			},
+			I: (i) => {
+				if (i !== undefined) {
+					tempI = i;
+					queue.push({type: 'I', args: [i]});
+				} else {
+					return tempI;
+				}
+			},
+			ON: () => {
+				queue.push({type: 'ON'});
+			},
+			OFF: () => {
+				queue.push({type: 'OFF'});
+			},
+			SLEEP: (n) => {
+				queue.push({type: 'SLEEP', args: [n] });
+			},
+			times: function (n, f) {
+				for (let i = 0; i < n; i++) {
+					f(i);
+				}
+			}
+		};
+
+		const argumentNames = Object.keys(scope);
+		const argumentValues = argumentNames.map((name) => scope[name]);
+
+		Function.apply(null, argumentNames.concat(text)).apply(null, argumentValues);
+		return queue;
+	}, 500);
+
+	return await dslFunction(initialV, initialI, text);
+}
 
 export async function sleep(n) {
 	return new Promise((resolve) => {

@@ -13,6 +13,11 @@ import {
   GROUP5_CURRENT_SET,
   GROUP6_VOLTAGE_SET,
   GROUP6_CURRENT_SET,
+  OVP,
+  OCP,
+  OPP,
+  OTP,
+  LVP,
   BRIGHTNESS,
   VOLUME,
 } from "../../dps-150.js";
@@ -233,6 +238,16 @@ export class MockBackendWorker {
       const index = Math.floor((id - GROUP1_VOLTAGE_SET) / 2) + 1;
       const type = (id - GROUP1_VOLTAGE_SET) % 2 === 0 ? 'setVoltage' : 'setCurrent';
       this.deviceState[`group${index}${type}`] = value;
+    } else if (id === OVP) {
+      this.deviceState.overVoltageProtection = value;
+    } else if (id === OCP) {
+      this.deviceState.overCurrentProtection = value;
+    } else if (id === OPP) {
+      this.deviceState.overPowerProtection = value;
+    } else if (id === OTP) {
+      this.deviceState.overTemperatureProtection = value;
+    } else if (id === LVP) {
+      this.deviceState.lowVoltageProtection = value;
     }
     // 他のIDも必要に応じて追加
   }
